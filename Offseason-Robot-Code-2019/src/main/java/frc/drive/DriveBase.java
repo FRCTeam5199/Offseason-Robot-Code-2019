@@ -10,6 +10,7 @@ public class DriveBase{
     private final CANSparkMax leaderL, leaderR, slaveL, slaveR;
     public boolean reverseL;
     public boolean reverseR;
+
     public DriveBase() {
         leaderL = new CANSparkMax(RobotMap.driveLeaderL, MotorType.kBrushless);
         leaderR = new CANSparkMax(RobotMap.driveLeaderR, MotorType.kBrushless);
@@ -19,6 +20,7 @@ public class DriveBase{
         slaveL.follow(leaderL);
         slaveR.follow(leaderR);        
     }
+    
     //initialization code(setting vars and stuff)
     public void init(){
         leaderL.setSmartCurrentLimit(40);
@@ -30,7 +32,7 @@ public class DriveBase{
         slaveL.setIdleMode(IdleMode.kCoast);
         slaveR.setIdleMode(IdleMode.kCoast);
     }
-    
+
     public void setLSide(double speed){
         if(!reverseL){leaderL.set(speed);}
         else if(reverseL){leaderL.set(-speed);}
