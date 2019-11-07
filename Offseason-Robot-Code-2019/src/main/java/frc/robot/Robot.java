@@ -14,6 +14,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.controllers.XBoxController;
 import frc.drive.DriveBase;
 import frc.drive.DriveController;
+import frc.drive.DriveControllerTrainer;
+import edu.wpi.first.cameraserver.CameraServer;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -23,9 +25,12 @@ import frc.drive.DriveController;
  * project.
  */
 public class Robot extends IterativeRobot {
+  //upper is normal mode, lower is trainer(dual control) mode
   private DriveController driveController;
+  //private DriveControllerTrainer driveController;
   private DriveBase base;
   private XBoxController Xbox;
+  private XBoxController Xbox2;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -34,11 +39,16 @@ public class Robot extends IterativeRobot {
   @Override
   public void robotInit() {
     Xbox = new XBoxController(0);
+    Xbox2 = new XBoxController(1);
     base = new DriveBase();
 
+    //upper is normal mode, lower is trainer(dual control) mode
     driveController = new DriveController(base, Xbox);
+    //driveController = new DriveControllerTrainer(base, Xbox, Xbox2);
 
     driveController.init();
+
+    CameraServer.getInstance().startAutomaticCapture();
   }
 
   /**
@@ -61,12 +71,12 @@ public class Robot extends IterativeRobot {
 
   @Override
   public void autonomousPeriodic() {
-    
+    teleopPeriodic();
   }
 
   @Override
   public void teleopPeriodic() {
-
+    driveController.update();
   }
 
   @Override
