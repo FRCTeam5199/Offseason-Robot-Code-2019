@@ -1,22 +1,32 @@
 package frc.drive;
 
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANPIDController;
+import com.revrobotics.CANSparkMax.FaultID;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import com.revrobotics.ControlType;
+
 import com.ctre.phoenix.sensors.PigeonIMU;
 
+import frc.robot.RobotNumbers;
 import frc.robot.RobotMap;
 
 public class DriveBase{
     private final PigeonIMU pigeon = new PigeonIMU(0);
     private final CANSparkMax leaderL, leaderR, slaveL, slaveR;
 
-    public static boolean reverseL = false;
-    public static boolean reverseR = false;
+    private boolean usePID = false;
+
     private static double wheelRadius = 2;
     public double[] ypr = new double[3];
     private double[] startypr = new double[3];
+
+    private CANPIDController lPid;
+    private CANPIDController rPid;
 
     public DriveBase() {
         leaderL = new CANSparkMax(RobotMap.driveLeaderL, MotorType.kBrushless);
@@ -28,8 +38,14 @@ public class DriveBase{
         slaveR.follow(leaderR);
     }
     
-    //initialization code(setting vars and stuff)
-    public void init(){
+    //initialization code(setting vars and stuff) ----------------------------------------------------------------------------------------
+    public void initPID(){ //do init stuff but with PID startup
+        init();
+        startPid();
+        usePID = true;
+    }
+
+    public void init(){ //set current limits and idle modes
         leaderL.setSmartCurrentLimit(40);
         leaderR.setSmartCurrentLimit(40);
         slaveL.setSmartCurrentLimit(40);
@@ -40,19 +56,34 @@ public class DriveBase{
         slaveR.setIdleMode(IdleMode.kCoast);
     }
 
-    public void setLSide(double speed){
+    //drive methods ------------------------------------------------------------------------------------------------------------------
+    public void setLSide(double speed){ //set speed of left side
         leaderL.set(-speed);
     }
-    public void setRSide(double speed){
+    public void setRSide(double speed){ //set speed of right side
         leaderR.set(speed);
     }
 
-    public void drive(double left, double right){
+    public void drive(double left, double right){ //drive with normal control or PID depending on if you're initialized with PID
+        if(!usePID){
+            driveNonPID(left, right);
+        }
+        else if(usePID){
+            drivePID(left, right);
+        }
+    }
+    
+    public void driveNonPID(double left, double right){ //set speeds of both sides directly
         setLSide(left);
         setRSide(right);
     }
 
-    public void setBrake(boolean brake){
+    public void drivePID(double left, double right){ //set target speeds for PID controlled drive
+        lUpdatePID(left*5000);
+        rUpdatePID(right*5000);
+    }
+
+    public void setBrake(boolean brake){ //set idle mode to brake or coast(DOES NOT WORK IN PID DRIVE)
         if(brake == false){
             leaderL.setIdleMode(IdleMode.kCoast);
             leaderR.setIdleMode(IdleMode.kCoast);
@@ -67,7 +98,7 @@ public class DriveBase{
         }
     }
 
-    //pigeon code
+    //pigeon code ------------------------------------------------------------------------------------------------------------------
     public void updatePigeon(){
         pigeon.getYawPitchRoll(ypr);
     }
@@ -75,42 +106,66 @@ public class DriveBase{
         updatePigeon();
         startypr = ypr;
     }
-    //absolute ypr
-    public double yawAbs(){ //return absolute yaw of pigeon
-        updatePigeon();
-        return ypr[0];
+    //absolute ypr -----------------------------------------------------------------------------------------------------------------
+        public double yawAbs(){ //return absolute yaw of pigeon
+            updatePigeon();
+            return ypr[0];
+        }
+        public double pitchAbs(){ //return absolute pitch of pigeon
+            updatePigeon();
+            return ypr[1];
+        }
+        public double rollAbs(){ //return absolute roll of pigeon
+            updatePigeon();
+            return ypr[2];
+        }
+    //relative ypr ----------------------------------------------------------------------------------------------------------------
+        public double yawRel(){ //return relative(to start) yaw of pigeon
+            updatePigeon();
+            return ypr[0]-startypr[0];
+        }
+        public double pitchRel(){ //return relative pitch of pigeon
+            updatePigeon();
+            return ypr[1]-startypr[1];
+        }
+        public double rollRel(){ //return relative roll of pigeon
+            updatePigeon();
+            return ypr[2]-startypr[2];
+        }
+
+    //drive pid code ------------------------------------------------------------------------------------------------------------------
+    private void startPid(){ //create pid controllers for drivebase sides and set the PID constants
+        lPid = leaderL.getPIDController();
+        rPid = leaderR.getPIDController();
+        setPID(RobotNumbers.drivebaseP , RobotNumbers.drivebaseI , RobotNumbers.drivebaseD);
     }
-    public double pitchAbs(){ //return absolute pitch of pigeon
-        updatePigeon();
-        return ypr[1];
+    private void setPID(double p , double i, double d){ //set PID constants
+        lPid.setP(p);
+        lPid.setI(i);
+        lPid.setD(d);
+
+        rPid.setP(p);
+        rPid.setI(i);
+        rPid.setD(d);
+
+        lPid.setOutputRange(-1, 1);
+        rPid.setOutputRange(-1, 1);
     }
-    public double rollAbs(){ //return absolute roll of pigeon
-        updatePigeon();
-        return ypr[2];
+    private void lUpdatePID(double rpm){ //set left side PID target speed
+        lPid.setReference(-rpm, ControlType.kVelocity);
     }
-    //relative ypr
-    public double yawRel(){ //return relative(to start) yaw of pigeon
-        updatePigeon();
-        return ypr[0]-startypr[0];
-    }
-    public double pitchRel(){ //return relative pitch of pigeon
-        updatePigeon();
-        return ypr[1]-startypr[1];
-    }
-    public double rollRel(){ //return relative roll of pigeon
-        updatePigeon();
-        return ypr[2]-startypr[2];
+    private void rUpdatePID(double rpm){ //set right side PID target speed
+        rPid.setReference(rpm, ControlType.kVelocity);
     }
 
-
-    //encoder code
+    //encoder code ----------------------------------------------------------------------------------------------------------------
     private double wheelCircumference(){
         return 2*wheelRadius*Math.PI;
     }
 
     //getRotations - get wheel rotations on encoder
     public double getRotationsLeft(){
-        return (leaderL.getEncoder().getPosition())/6.8;
+        return -(leaderL.getEncoder().getPosition())/6.8;
     }
     public double getRotationsRight(){
         return (leaderR.getEncoder().getPosition())/6.8;
@@ -118,7 +173,7 @@ public class DriveBase{
 
     //getRPM - get wheel RPM from encoder
     public double getRPMLeft(){
-        return (leaderL.getEncoder().getVelocity())/6.8;
+        return -(leaderL.getEncoder().getVelocity())/6.8;
     }
     public double getRPMRight(){
         return (leaderR.getEncoder().getVelocity())/6.8;
@@ -155,4 +210,28 @@ public class DriveBase{
     public double getFeetRight(){
         return (getRotationsRight()*wheelCircumference()/12);
     }
+
+    //debug code -------------------------------------------------------------------------------------------------------------------
+    public String[] checkMotors(){
+        String[] output = {checkMotor(leaderL), checkMotor(leaderR), checkMotor(slaveL), checkMotor(slaveR)};
+        return output;
+    }
+    private String checkMotor(CANSparkMax motor){
+        boolean anyErrors = false;
+        String out = motor.toString() + " has error(s): ";
+        for(int i=0 ; i<=11 ; i++){
+            if(motor.getFault(RobotNumbers.sparkErrorIDs[i])){
+                out += RobotNumbers.sparkErrors[i]+", ";
+                anyErrors = true;
+            }
+        }
+        if(!anyErrors){
+            out += "none";
+        }
+        else{
+            out = out.substring(0, out.length()-3);
+        }
+        return out;
+    }
+    
 }

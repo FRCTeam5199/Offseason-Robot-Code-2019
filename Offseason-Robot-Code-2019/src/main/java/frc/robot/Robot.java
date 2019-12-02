@@ -32,6 +32,8 @@ public class Robot extends IterativeRobot {
   private XBoxController Xbox;
   private XBoxController Xbox2;
 
+  public static boolean debug = false;
+
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
@@ -81,6 +83,7 @@ public class Robot extends IterativeRobot {
 
   @Override
   public void testPeriodic() {
+    if(!debug){debug=true;}
     driveController.update();
   }
 }
