@@ -13,6 +13,7 @@ import com.revrobotics.ControlType;
 import com.ctre.phoenix.sensors.PigeonIMU;
 
 import frc.robot.RobotNumbers;
+import frc.robot.RobotToggles;
 import frc.robot.RobotMap;
 
 public class DriveBase{
@@ -45,6 +46,13 @@ public class DriveBase{
         usePID = true;
     }
 
+    public void resetEncoders(){
+        leaderL.getEncoder().setPosition(0);
+        leaderR.getEncoder().setPosition(0);
+        slaveL.getEncoder().setPosition(0);
+        slaveR.getEncoder().setPosition(0);
+    }
+
     public void init(){ //set current limits and idle modes
         leaderL.setSmartCurrentLimit(40);
         leaderR.setSmartCurrentLimit(40);
@@ -65,11 +73,13 @@ public class DriveBase{
     }
 
     public void drive(double left, double right){ //drive with normal control or PID depending on if you're initialized with PID
-        if(!usePID){
-            driveNonPID(left, right);
-        }
-        else if(usePID){
-            drivePID(left, right);
+        if(RobotToggles.drive){
+            if(!usePID){
+                driveNonPID(left, right);
+            }
+            else if(usePID){
+                drivePID(left, right);
+            }
         }
     }
     
@@ -151,10 +161,10 @@ public class DriveBase{
         lPid.setOutputRange(-1, 1);
         rPid.setOutputRange(-1, 1);
     }
-    private void lUpdatePID(double rpm){ //set left side PID target speed
+    public void lUpdatePID(double rpm){ //set left side PID target speed
         lPid.setReference(-rpm, ControlType.kVelocity);
     }
-    private void rUpdatePID(double rpm){ //set right side PID target speed
+    public void rUpdatePID(double rpm){ //set right side PID target speed
         rPid.setReference(rpm, ControlType.kVelocity);
     }
 
@@ -216,7 +226,20 @@ public class DriveBase{
         String[] output = {checkMotor(leaderL), checkMotor(leaderR), checkMotor(slaveL), checkMotor(slaveR)};
         return output;
     }
-    private String checkMotor(CANSparkMax motor){
+
+    public String checkLL(){
+        return checkMotor(leaderL);
+    }
+    public String checkLR(){
+        return checkMotor(leaderR);
+    }
+    public String checkS1L(){
+        return checkMotor(slaveL);
+    }
+    public String checkS1R(){
+        return checkMotor(slaveR);
+    }
+    public String checkMotor(CANSparkMax motor){
         boolean anyErrors = false;
         String out = motor.toString() + " has error(s): ";
         for(int i=0 ; i<=11 ; i++){
@@ -232,6 +255,5 @@ public class DriveBase{
             out = out.substring(0, out.length()-3);
         }
         return out;
-    }
-    
+    }    
 }
