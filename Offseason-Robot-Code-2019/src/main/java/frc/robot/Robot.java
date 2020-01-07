@@ -74,12 +74,12 @@ public class Robot extends IterativeRobot {
 
   @Override
   public void autonomousInit() {
-    
+    driveController.initAuton();
   }
 
   @Override
   public void autonomousPeriodic() {
-    teleopPeriodic();
+    driveController.updateAuton();
   }
 
   @Override
