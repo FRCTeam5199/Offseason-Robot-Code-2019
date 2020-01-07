@@ -10,4 +10,8 @@ public class RobotMap{
     public static final int driveLeaderR = 3;
     public static final int driveSlaveR = 4;
 
+    //TEMP
+    public static final int rightShooter = 5;
+    public static final int leftShooter = 6;
+
 }

@@ -15,6 +15,7 @@ import frc.controllers.XBoxController;
 import frc.drive.DriveBase;
 import frc.drive.DriveController;
 import frc.drive.DriveControllerTrainer;
+import frc.shooter.*;
 import edu.wpi.first.cameraserver.CameraServer;
 
 /**
@@ -27,8 +28,10 @@ import edu.wpi.first.cameraserver.CameraServer;
 public class Robot extends IterativeRobot {
   //upper is normal mode, lower is trainer(dual control) mode
   private DriveController driveController;
+  private ShooterControl shooterControl;
   //private DriveControllerTrainer driveController;
   private DriveBase base;
+  private Shooter shooter;
   private XBoxController Xbox;
   private XBoxController Xbox2;
 
@@ -43,12 +46,15 @@ public class Robot extends IterativeRobot {
     Xbox = new XBoxController(0);
     Xbox2 = new XBoxController(1);
     base = new DriveBase();
+    shooter = new Shooter();
 
     //upper is normal mode, lower is trainer(dual control) mode
     driveController = new DriveController(base, Xbox);
+    shooterControl = new ShooterControl(shooter, Xbox);
     //driveController = new DriveControllerTrainer(base, Xbox, Xbox2);
 
     driveController.init();
+    shooterControl.init();
 
     CameraServer.getInstance().startAutomaticCapture();
   }
@@ -79,6 +85,8 @@ public class Robot extends IterativeRobot {
   @Override
   public void teleopPeriodic() {
     driveController.update();
+    shooterControl.update();
+    shooterControl.printRPM();
   }
 
   @Override
